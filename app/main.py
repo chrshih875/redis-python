@@ -8,7 +8,8 @@ def main():
 
     server_socket = socket.create_server(("localhost", 6379), reuse_port=True)
     conn, address = server_socket.accept() # wait for client
-    conn.send(b"+PONG\r\n")
+    for i in range(10):
+        conn.send(b"+PONG\r\n")
     print("con", conn)
 
 
