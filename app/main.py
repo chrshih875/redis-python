@@ -16,6 +16,8 @@ def handle_request(connection):
         while True:
             print("Waiting for message")
             data = connection.recv(4096).decode()
+            if not data:
+                break
             print(data)
             connection.send("+PONG\r\n".encode())
             print("Sent message")
