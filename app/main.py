@@ -1,8 +1,8 @@
 import socket
 import threading
 
-def handle_request(connection):
-    if connection:
+def handle_request(connection, address):
+    with connection:
         while True:
             print("Waiting for message")
             data = connection.recv(4096).decode()
