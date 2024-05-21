@@ -9,7 +9,7 @@ def main():
     server_socket = socket.create_server(("localhost", 6379), reuse_port=True)
     while True:
         conn, address = server_socket.accept() # wait for client
-        threading.Thread(target=handle_request, args=(conn)).start()
+        threading.Thread(target=handle_request, args=(conn, address)).start()
 
 def handle_request(connection):
     with connection:
