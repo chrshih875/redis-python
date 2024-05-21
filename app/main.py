@@ -6,6 +6,7 @@ class Connection(Thread):
         super().__init__()
         self.socket = socket
         self.address = address
+        self.dict = {}
         self.start()
 
     def run(self):
@@ -14,7 +15,7 @@ class Connection(Thread):
             request = self.socket.recv(4096)
             if request:
                 parse_request = self.parse_request(request)
-                # print("PARSE_REQ", parse_request) 
+                print("PARSE_REQ", parse_request) 
                 self.parse_command(parse_request)
 
     def parse_request(self, request):
@@ -25,8 +26,17 @@ class Connection(Thread):
         match check_command:
             case "PING":
                 self.socket.send("+PONG\r\n".encode())
-            case ECHO:
+            case "ECHO":
                 self.socket.send(f"+{command[1]}\r\n".encode())
+            case "SET":
+                self.dict[command[1]] = command[2]
+                self.socket.send("+OK\r\n".encode())
+            case "GET":
+                response = self.dict[command[1]]
+                if response:
+                    self.socket.send(f"+{response}\r\n".encode())
+                else:
+                    self.socket.send("-1\r\n".encode())
         print("Sent message")
 
 def main():
@@ -38,8 +48,6 @@ def main():
         conn, address = server_socket.accept() # wait for client
         Connection(conn, address)
         # threading.Thread(target=handle_request, args=(conn, address)).start()
-
-
 
 if __name__ == "__main__":
     main()
