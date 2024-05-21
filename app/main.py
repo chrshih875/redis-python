@@ -1,12 +1,14 @@
 import socket
 from threading import *
+from time import time
 
 class Connection(Thread):
     def __init__(self, socket, address):
         super().__init__()
         self.socket = socket
         self.address = address
-        self.dict = {}
+        self.store = {}
+        self.expiry_time = {}
         self.start()
 
     def run(self):
@@ -29,14 +31,20 @@ class Connection(Thread):
             case "ECHO":
                 self.socket.send(f"+{command[1]}\r\n".encode())
             case "SET":
-                self.dict[command[1]] = command[2]
+                self.store[command[1]] = command[2]
+                if len(command) > 3 and command[3].lower() == "px":
+                    additional_time = int(command[-1])
+                    self.expiry_time[command[1]] = additional_time+(time()*1000)
                 self.socket.send("+OK\r\n".encode())
             case "GET":
-                response = self.dict[command[1]]
+                response = self.store[command[1]]
                 if response:
-                    self.socket.send(f"+{response}\r\n".encode())
+                    if command[1] in self.expiry_time and self.expiry_time[command[1]] >= time() * 1000 or command[1] not in self.expiry_time:
+                        self.socket.send(f"+{response}\r\n".encode())
+                    else:
+                        self.socket.send("$-1\r\n".encode())
                 else:
-                    self.socket.send("-1\r\n".encode())
+                    self.socket.send("$-1\r\n".encode())
         print("Sent message")
 
 def main():
