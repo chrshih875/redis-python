@@ -13,11 +13,10 @@ class Connection(Thread):
 
     def run(self):
         while True:
-            # print("Waiting for message")
             request = self.socket.recv(4096)
             if request:
                 parse_request = self.parse_request(request)
-                print("PARSE_REQ", parse_request) 
+                # print("PARSE_REQ", parse_request) 
                 self.parse_command(parse_request)
 
     def parse_request(self, request):
@@ -48,14 +47,12 @@ class Connection(Thread):
         print("Sent message")
 
 def main():
-    # You can use print statements as follows for debugging, they'll be visible when running tests.
     print("Logs from your program will appear here!")
 
     server_socket = socket.create_server(("localhost", 6379), reuse_port=True)
     while True:
         conn, address = server_socket.accept() # wait for client
         Connection(conn, address)
-        # threading.Thread(target=handle_request, args=(conn, address)).start()
 
 if __name__ == "__main__":
     main()
