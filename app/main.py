@@ -27,6 +27,7 @@ class Connection(Thread):
                 self.socket.send("+PONG\r\n".encode())
             case ECHO:
                 self.socket.send(f"+{command[1]}\r\n".encode())
+        print("adding")
         print("Sent message")
 
 def main():
