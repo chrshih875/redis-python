@@ -8,14 +8,20 @@ def handle_request(connection, address):
             data = connection.recv(4096).decode()
             if not data:
                 break
-            print(data)
-            connection.send("+PONG\r\n".encode())
+            print("DATA", data)
+            command = data[0].upper()
+            match command:
+                case "PING":
+                    connection.send("+PONG\r\n".encode())
+                case ECHO:
+                    connection.send(data[1].encode())
+
             print("Sent message")
+
 
 def main():
     # You can use print statements as follows for debugging, they'll be visible when running tests.
     print("Logs from your program will appear here!")
-
 
     server_socket = socket.create_server(("localhost", 6379), reuse_port=True)
     while True:
