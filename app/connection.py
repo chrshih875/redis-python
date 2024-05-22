@@ -1,5 +1,6 @@
 from threading import *
 from time import time
+import os
 
 class Connection(Thread):
     def __init__(self, socket, address, dir, dbfilename):
@@ -48,4 +49,22 @@ class Connection(Thread):
                     self.socket.send("$-1\r\n".encode())
             case "CONFIG":
                 self.socket.send(f"*2\r\n$3\r\n{command[-1]}\r\n${len(self.dir)}\r\n{self.dir}\r\n".encode())
+            case "KEYS":
+                rdb_data, length = self.read_rdb_file(self.dir, self.filename)
+                self.socket.send(f"*1\r\n${length}\r\n{rdb_data}\r\n".encode())
         print("Sent message")
+
+    def finding_rdb_key_length(self, file):
+        while op := file.read(1):
+            if op == b"\xfb":
+                break
+        data = file.read(4)
+        return data[-1]
+    
+    def read_rdb_file(self, dir, dbfilename):
+        file_path = os.path.join(dir, dbfilename)
+        if not open(file_path, 'rb'):
+            return
+        with open(file_path, 'rb') as file:
+            key_length = self.finding_rdb_key_length(file)
+            return file.read(key_length).decode('utf-8'), key_length
