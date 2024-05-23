@@ -1,14 +1,14 @@
-from threading import *
+from threading import Thread
 from time import time
 import os
+from app.RDB_file_config import RDB_fileconfig
 
-class Connection(Thread):
+class Connection(Thread, RDB_fileconfig):
     def __init__(self, socket, address, dir, dbfilename):
         super().__init__()
         self.socket = socket
         self.address = address
-        self.dir = dir
-        self.filename = dbfilename
+        self.path = RDB_fileconfig(dir, dbfilename)
         self.store = {}
         self.expiry_time = {}
         self.config_get = {}
@@ -26,7 +26,6 @@ class Connection(Thread):
         return request.decode().split("\r\n")[2:-1:2]
 
     def parse_command(self, command):
-        # print("COMMAND",command)
         check_command = command[0].upper()
         match check_command:
             case "PING":
@@ -40,39 +39,16 @@ class Connection(Thread):
                     self.expiry_time[command[1]] = additional_time+(time()*1000)
                 self.socket.send("+OK\r\n".encode())
             case "GET":
-                if self.dir and self.filename:
-                    rdb_key, rdb_value, key_length, value_length = self.read_rdb_file(self.dir, self.filename)
-                    self.socket.send(f"${value_length}\r\n{rdb_value}\r\n".encode())
-                    # print("returned data", rdb_key, rdb_value, key_length, value_length) 
+                if self.path.dir and self.path.filename:
+                    signal = self.read_rdb_file(self.path.dir, self.path.filename, "GET")
+                    return self.socket.send(signal)
                 elif command[1] in self.expiry_time and self.expiry_time[command[1]] >= time() * 1000 or command[1] not in self.expiry_time:
                     self.socket.send(f"+{self.store[command[1]]}\r\n".encode())
                 else:
                     self.socket.send("$-1\r\n".encode())
             case "CONFIG" | "GET":
-                self.socket.send(f"*2\r\n$3\r\n{command[-1]}\r\n${len(self.dir)}\r\n{self.dir}\r\n".encode())
+                self.socket.send(f"*2\r\n$3\r\n{command[-1]}\r\n${len(self.path.dir)}\r\n{self.path.dir}\r\n".encode())
             case "KEYS":
-                rdb_key, rdb_value, key_length, value_length = self.read_rdb_file(self.dir, self.filename)
-                self.socket.send(f"*1\r\n${key_length}\r\n{rdb_key}\r\n".encode())
+                signal = self.read_rdb_file(self.path.dir, self.path.filename, "KEYS")
+                self.socket.send(signal)
         print("Sent message")
-
-    def finding_rdb_key_length(self, file):
-        while op := file.read(1):
-            if op == b"\xfb":
-                break
-        data = file.read(4)
-        return data[-1]
-    
-    def finding_rdb_value_length(self, file):
-        length = file.read(1)
-        return length[-1]
-    
-    def read_rdb_file(self, dir, dbfilename):
-        file_path = os.path.join(dir, dbfilename)
-        if not os.path.exists(file_path):
-            return
-        with open(file_path, 'rb') as file:
-            key_length = self.finding_rdb_key_length(file)
-            key = file.read(key_length).decode('utf-8')
-            value_length = self.finding_rdb_value_length(file)
-            value = file.read(value_length).decode('utf-8')
-            return key, value, key_length, value_length
