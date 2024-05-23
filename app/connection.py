@@ -51,4 +51,10 @@ class Connection(Thread, RDB_fileconfig):
             case "KEYS":
                 signal = self.read_rdb_file(self.path.dir, self.path.filename, "KEYS")
                 self.socket.send(signal)
+            case "TYPE":
+                if command[1] in self.store and isinstance(self.store[command[1]], str):
+                    self.socket.send("+string\r\n".encode())
+                else:
+                    self.socket.send("+none\r\n".encode())
+                # pass
         print("Sent message")
