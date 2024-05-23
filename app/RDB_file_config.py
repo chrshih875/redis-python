@@ -1,4 +1,3 @@
-
 import os
 
 class RDB_fileconfig:
@@ -37,19 +36,16 @@ class RDB_fileconfig:
                 dictionary[strings] = "tmp"
                 switch[0], switch[1], strings = False, strings, ""
             else:
-                print("hit2", strings)
                 dictionary[switch[1]] = strings
                 switch[0], strings = True, ""
         dictionary[switch[1]] = strings
         return dictionary
 
     def return_value_only(self, dictionary):
-        values = dictionary.values()
-        array = []
-        for value in values:
-            array.append(f"${len(value)}\r\n{value}\r\n")
-        print("values", array)
-        return "".join(array).encode()
+        revised = {}
+        for key, val in dictionary.items():
+            revised[key] = f"${len(val)}\r\n{val}\r\n".encode()
+        return revised
 
     def return_key_only(self, dictionary):
         keys = dictionary.keys()
@@ -62,6 +58,8 @@ class RDB_fileconfig:
         file_path = os.path.join(dir, dbfilename)
         if not os.path.exists(file_path):
             return
+        # with open(file_path, 'rb') as file:
+        #     print("file", file.read())
         with open(file_path, 'rb') as file:
             match command:
                 case "GET":

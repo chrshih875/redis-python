@@ -41,14 +41,21 @@ class Connection(Thread, RDB_fileconfig):
             case "GET":
                 if self.path.dir and self.path.filename:
                     signal = self.read_rdb_file(self.path.dir, self.path.filename, "GET")
-                    return self.socket.send(signal)
+                    print("sig", signal)
+                    self.socket.send(signal[command[1]])
                 elif command[1] in self.expiry_time and self.expiry_time[command[1]] >= time() * 1000 or command[1] not in self.expiry_time:
+                    print("HIT1")
                     self.socket.send(f"+{self.store[command[1]]}\r\n".encode())
                 else:
+                    print("HIT2")
                     self.socket.send("$-1\r\n".encode())
             case "CONFIG" | "GET":
                 self.socket.send(f"*2\r\n$3\r\n{command[-1]}\r\n${len(self.path.dir)}\r\n{self.path.dir}\r\n".encode())
             case "KEYS":
+                print("HIT KEYS")
                 signal = self.read_rdb_file(self.path.dir, self.path.filename, "KEYS")
+                print("keys", signal)
                 self.socket.send(signal)
         print("Sent message")
+
+        # SIG b'$5\r\napple\r\n$5\r\ngrape\r\n$4\r\npear\r\n$6\r\norange\r\n'
