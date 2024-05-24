@@ -1,4 +1,4 @@
-from collections import defaultdict
+from time import time
 
 class Streams:
     def __init__(self, args, stream_logs):
@@ -19,6 +19,10 @@ class Streams:
                 return "-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n".encode()
     
     def validate_entry_IDs(self):
+        if self.ID == "*":
+            self.ID = self.time_number_auto_generate()
+            return [2]
+
         curr_ID_time, curr_ID_sequence = self.ID.split("-")
         if curr_ID_sequence == "*":
             curr_ID_sequence = self.sequence_number_auto_generate(curr_ID_time, curr_ID_sequence)
@@ -47,6 +51,18 @@ class Streams:
             else:
                 curr_ID_sequence = 0
         return str(curr_ID_sequence)
+
+    def time_number_auto_generate(self):
+        curr_ID_time = int(time() * 1000)
+        if self.key not in self.log:
+            return f"{curr_ID_time}-{0}"
+        else:
+            last_ID_time, last_ID_sequence = self.log[self.key][-1][0].split("-")
+            if curr_ID_time == int(last_ID_time):
+                curr_ID_sequence = last_ID_sequence + 1
+            else:
+                curr_ID_sequence = 0
+        return f"{curr_ID_time}-{curr_ID_sequence}"
 
     def return_ID(self):
         return f"${len(self.ID)}\r\n{self.ID}\r\n".encode()
