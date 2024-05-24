@@ -20,7 +20,10 @@ class Streams:
     
     def validate_entry_IDs(self):
         curr_ID_time, curr_ID_sequence = self.ID.split("-")
-        print("curr id", curr_ID_time, curr_ID_sequence)
+        if curr_ID_sequence == "*":
+            curr_ID_sequence = self.sequence_number_auto_generate(curr_ID_time, curr_ID_sequence)
+            self.ID = f"{curr_ID_time}-{curr_ID_sequence}"
+            return [2]
         if int(curr_ID_time) == 0 and int(curr_ID_sequence) == 0:
             return [1]
         
@@ -33,6 +36,17 @@ class Streams:
         int(curr_ID_sequence) > int(last_ID_sequence)):
             return [2]
         return [3]
+
+    def sequence_number_auto_generate(self, curr_ID_time, curr_ID_sequence):
+        if self.key not in self.log:
+            curr_ID_sequence = 1 if int(curr_ID_time) == 0 else 0
+        else:
+            last_ID_time, last_ID_sequence = self.log[self.key][-1][0].split("-")
+            if int(curr_ID_time) == 0 or curr_ID_time ==  last_ID_time:
+                curr_ID_sequence = int(last_ID_sequence) + 1
+            else:
+                curr_ID_sequence = 0
+        return str(curr_ID_sequence)
 
     def return_ID(self):
         return f"${len(self.ID)}\r\n{self.ID}\r\n".encode()
