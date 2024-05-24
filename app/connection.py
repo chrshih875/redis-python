@@ -56,5 +56,4 @@ class Connection(Thread, RDB_fileconfig):
                     self.socket.send("+string\r\n".encode())
                 else:
                     self.socket.send("+none\r\n".encode())
-                # pass
         print("Sent message")
