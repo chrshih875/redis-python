@@ -1,9 +1,10 @@
 from threading import Thread
 from time import time
-import os
+from collections import defaultdict
 from app.RDB_file_config import RDB_fileconfig
+from app.streams import Streams
 
-class Connection(Thread, RDB_fileconfig):
+class Connection(Thread, RDB_fileconfig, Streams):
     def __init__(self, socket, address, dir, dbfilename):
         super().__init__()
         self.socket = socket
@@ -12,6 +13,7 @@ class Connection(Thread, RDB_fileconfig):
         self.store = {}
         self.expiry_time = {}
         self.config_get = {}
+        self.stream_log = defaultdict(list)
         self.start()
 
     def run(self):
@@ -52,11 +54,14 @@ class Connection(Thread, RDB_fileconfig):
                 signal = self.read_rdb_file(self.path.dir, self.path.filename, "KEYS")
                 self.socket.send(signal)
             case "TYPE":
-                if command[1] in self.store and isinstance(self.store[command[1]], str):
+                if command[1] in self.stream_log:
+                    self.socket.send("+stream\r\n".encode())
+                elif command[1] in self.store and isinstance(self.store[command[1]], str):
                     self.socket.send("+string\r\n".encode())
                 else:
                     self.socket.send("+none\r\n".encode())
             case "XADD":
-                self.socket.send(f"${len(command[2])}\r\n{command[2]}\r\n".encode())
-                self.socket.send("+stream\r\n".encode())
+                stream = Streams(command[1:], self.stream_log)
+                signal = stream.add_log()
+                self.socket.send(signal)
         print("Sent message")
