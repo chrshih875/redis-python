@@ -61,4 +61,22 @@ class Streams:
 
     def return_ID(self):
         return f"${len(self.ID)}\r\n{self.ID}\r\n".encode()
-        
+    
+    def finding_xRange(self, args):
+        array = []
+        self.value = args[1:]
+        start_time, start_sequence, end_time, end_sequence = self.value[0][0], self.value[0][-1], self.value[1][0], self.value[1][-1]
+        curr_val = self.log[self.key]
+        for val in curr_val:
+            val_time, val_sequence = val[0][0], val[0][-1]
+            if start_time <= val_time <= end_time and start_sequence <= val_sequence <= end_sequence:
+                array.append(val)
+        signal_array = []
+        signal_array.append(f"*{len(array)}\r\n")
+        for val in array:
+            split_val = val[-1].split(" ")
+            signal_array.append(f"*{len(val)}\r\n${len(val[0])}\r\n{val[0]}\r\n*{len(split_val)}\r\n")
+            for i in range(len(split_val)):
+                signal_array.append(f"${len(split_val[i])}\r\n{split_val[i]}\r\n")
+        return "".join(signal_array).encode()
+    

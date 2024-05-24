@@ -64,4 +64,8 @@ class Connection(Thread, RDB_fileconfig, Streams):
                 stream = Streams(command[1:], self.stream_log)
                 signal = stream.add_log()
                 self.socket.send(signal)
+            case "XRANGE":
+                stream = Streams(command[1:], self.stream_log)
+                signal = stream.finding_xRange(command[1:])
+                self.socket.send(signal)
         print("Sent message")
