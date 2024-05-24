@@ -56,4 +56,7 @@ class Connection(Thread, RDB_fileconfig):
                     self.socket.send("+string\r\n".encode())
                 else:
                     self.socket.send("+none\r\n".encode())
+            case "XADD":
+                self.socket.send(f"${len(command[2])}\r\n{command[2]}\r\n".encode())
+                self.socket.send("+none\r\n".encode())
         print("Sent message")
