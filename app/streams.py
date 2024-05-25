@@ -63,7 +63,6 @@ class Streams:
         return f"${len(self.ID)}\r\n{self.ID}\r\n".encode()
     
     def finding_xRange(self, args):
-        array = []
         self.value = args[1:]
         start_time, start_sequence, end_time, end_sequence = self.value[0][0], self.value[0][-1], self.value[1][0], self.value[1][-1]
         if args[-1] == "+":
@@ -71,10 +70,37 @@ class Streams:
         if args[-1] == "-":
             start_time, start_sequence = self.log[self.key][0][0].split("-")
         curr_val = self.log[self.key]
+
+        array = []
         for val in curr_val:
             val_time, val_sequence = val[0][0], val[0][-1]
             if start_time <= val_time <= end_time and start_sequence <= val_sequence <= end_sequence:
                 array.append(val)
+        signal = self.encode_XRANGE(array)
+        return "".join(signal).encode()
+
+    def query_stream_XREAD(self, args):
+        start_time, start_sequence = args[-1].split("-")
+        curr_val = self.log[args[0]]
+        array = []
+        for val in curr_val:
+            val_time, val_sequence = val[0][0], val[0][-1]
+            if start_time <= val_time and start_sequence <= val_sequence:
+                array.append(val)
+        signal = self.encode_XREAD(array, args)
+        return "".join(signal).encode()
+    
+    def encode_XREAD(self, array, args):
+        signal_array = []
+        signal_array.append(f"*1\r\n*2\r\n${len(args[0])}\r\n{args[0]}\r\n*{len(array)}\r\n*2\r\n")
+        for val in array:
+            split_val = val[-1].split(" ")
+            signal_array.append(f"${len(val[0])}\r\n{val[0]}\r\n*{len(split_val)}\r\n")
+            for i in range(len(split_val)):
+                signal_array.append(f"${len(split_val[i])}\r\n{split_val[i]}\r\n")
+        return signal_array
+
+    def encode_XRANGE(self, array,):
         signal_array = []
         signal_array.append(f"*{len(array)}\r\n")
         for val in array:
@@ -82,5 +108,5 @@ class Streams:
             signal_array.append(f"*{len(val)}\r\n${len(val[0])}\r\n{val[0]}\r\n*{len(split_val)}\r\n")
             for i in range(len(split_val)):
                 signal_array.append(f"${len(split_val[i])}\r\n{split_val[i]}\r\n")
-        return "".join(signal_array).encode()
-    
+        return signal_array
+
