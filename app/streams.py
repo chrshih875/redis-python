@@ -66,6 +66,10 @@ class Streams:
         array = []
         self.value = args[1:]
         start_time, start_sequence, end_time, end_sequence = self.value[0][0], self.value[0][-1], self.value[1][0], self.value[1][-1]
+        if args[-1] == "+":
+            end_time, end_sequence = self.log[self.key][-1][0].split("-")
+        if args[-1] == "-":
+            start_time, start_sequence = self.log[self.key][0][0].split("-")
         curr_val = self.log[self.key]
         for val in curr_val:
             val_time, val_sequence = val[0][0], val[0][-1]
