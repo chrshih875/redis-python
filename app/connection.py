@@ -4,7 +4,7 @@ from app.RDB_file_config import RDB_fileconfig
 from app.streams import Streams
 
 class Commands(Thread, RDB_fileconfig, Streams):
-    def __init__(self, socket, address, dir, dbfilename, share_data):
+    def __init__(self, socket, address, dir, dbfilename, share_data, replica=None):
         super().__init__()
         self.socket = socket
         self.address = address
@@ -13,6 +13,7 @@ class Commands(Thread, RDB_fileconfig, Streams):
         self.expiry_time = {}
         self.config_get = {}
         self.share_data = share_data
+        self.replica = replica
         self.start()
 
     def run(self):
@@ -98,6 +99,9 @@ class Commands(Thread, RDB_fileconfig, Streams):
                     signal = stream.query_stream_XREAD(command[2:])
                     self.socket.send(signal)
             case "INFO":
-                self.socket.send("$11\r\nrole:master\r\n".encode())
+                if self.replica:
+                    self.socket.send("$10\r\nrole:slave\r\n".encode())
+                else:
+                    self.socket.send("$11\r\nrole:master\r\n".encode())
                 pass
         print("Sent message")
