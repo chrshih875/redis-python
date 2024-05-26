@@ -67,9 +67,9 @@ class Connection(Thread, RDB_fileconfig, Streams):
                         signal = stream.add_log(command[1], command[2], " ".join(command[3:]))
                         self.share_data.condition.notify_all()
                         self.socket.send(signal)
-                        # self.share_data.block_reads = []
                     else:
                         signal = stream.add_log(command[1], command[2], " ".join(command[3:]))
+                        self.share_data.condition.notify_all()
                         self.socket.send(signal)
             case "XRANGE":
                 stream = Streams(command[1:], self.share_data.stream_log)
@@ -78,15 +78,22 @@ class Connection(Thread, RDB_fileconfig, Streams):
             case "XREAD":
                 stream = Streams(command[1:], self.share_data.stream_log)
                 if command[1] == "block":
-                    limit = time() + int(command[2])/1000
-                    self.share_data.block_reads.append(limit)
-                    with self.share_data.condition:
-                        if self.share_data.condition.wait(timeout=int(command[2])/1000):
-                            data = self.share_data.stream_log[command[4]][-1]
-                            signal = self.block_XREAD(data[0], command[4], data[1])
-                            self.socket.send(signal)
-                        else:
-                            self.socket.send("$-1\r\n".encode())
+                    if command[2] == "0":
+                        with self.share_data.condition:
+                            if self.share_data.condition.wait():
+                                data = self.share_data.stream_log[command[4]][-1]
+                                signal = self.block_XREAD(data[0], command[4], data[1])
+                                self.socket.send(signal)
+                    else:
+                        limit = time() + int(command[2])/1000
+                        self.share_data.block_reads.append(limit)
+                        with self.share_data.condition:
+                            if self.share_data.condition.wait(timeout=int(command[2])/1000):
+                                data = self.share_data.stream_log[command[4]][-1]
+                                signal = self.block_XREAD(data[0], command[4], data[1])
+                                self.socket.send(signal)
+                            else:
+                                self.socket.send("$-1\r\n".encode())
                     self.share_data.block_reads = []
                 else:
                     signal = stream.query_stream_XREAD(command[2:])

@@ -114,7 +114,6 @@ class Streams:
             signal_array.append(f"*2\r\n${len(keys[0])}\r\n{keys[i]}\r\n*1\r\n*2\r\n${len(IDs[i])}\r\n{IDs[i]}\r\n*{len(value)}\r\n")
             for i in range(len(value)):
                 signal_array.append(f"${len(value[i])}\r\n{value[i]}\r\n")
-                # {len(value[i])}
         return signal_array
     
     def encode_XREAD(self, array, keys):
