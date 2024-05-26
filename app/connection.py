@@ -1,10 +1,9 @@
 from threading import Thread
-from time import time, sleep
-# from collections import defaultdict
+from time import time
 from app.RDB_file_config import RDB_fileconfig
 from app.streams import Streams
 
-class Connection(Thread, RDB_fileconfig, Streams):
+class Commands(Thread, RDB_fileconfig, Streams):
     def __init__(self, socket, address, dir, dbfilename, share_data):
         super().__init__()
         self.socket = socket
