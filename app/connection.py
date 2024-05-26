@@ -97,4 +97,7 @@ class Commands(Thread, RDB_fileconfig, Streams):
                 else:
                     signal = stream.query_stream_XREAD(command[2:])
                     self.socket.send(signal)
+            case "INFO":
+                self.socket.send("$11\r\nrole:master\r\n".encode())
+                pass
         print("Sent message")
