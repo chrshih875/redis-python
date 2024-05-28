@@ -3,9 +3,11 @@ import argparse
 from app.connection import Commands
 from collections import defaultdict
 from threading import Condition
+from app.replication import Replication
 
-class SharedData:
+class SharedData(Replication):
     def __init__(self):
+        super().__init__()
         self.stream_log = defaultdict(list)
         self.block_reads = []
         self.condition = Condition()

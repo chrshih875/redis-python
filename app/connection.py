@@ -101,7 +101,11 @@ class Commands(Thread, RDB_fileconfig, Streams):
             case "INFO":
                 if self.replica:
                     self.socket.send("$10\r\nrole:slave\r\n".encode())
-                else:
+                elif self.replica:
                     self.socket.send("$11\r\nrole:master\r\n".encode())
-                pass
+                else:
+                    # dictionary = self.share_data.initial_replication_ID_and_Offset()
+                    master_repl_id = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb"
+                    s = f"role:master\nmaster_replid:{master_repl_id}\nmaster_repl_offset:0"
+                    self.socket.send(f"${len(s)}\r\n{s}\r\n".encode())
         print("Sent message")
