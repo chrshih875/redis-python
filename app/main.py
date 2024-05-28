@@ -4,7 +4,6 @@ from app.connection import Commands
 from collections import defaultdict
 from threading import Condition
 from app.replication import Replication
-
 class SharedData(Replication):
     def __init__(self):
         super().__init__()
@@ -24,13 +23,20 @@ def main():
     print("Logs from your program will appear here!")
     shared_data = SharedData()
     args = file_config(argparse.ArgumentParser())
-    print("args", args.replicaof)
+    print("args", args)
 
     port = int(args.port) if args.port else 6379
     server_socket = socket.create_server(("localhost", port), reuse_port=True)
+    if args.replicaof:
+        server = Replication()
+        master_host, master_port = args.replicaof.split(" ")
+        server.connect_master(master_host, master_port)
+        
     while True:
         conn, address = server_socket.accept() # wait for client
+        print("hello")
         Commands(conn, address, args.dir, args.dbfilename, shared_data, args.replicaof)
+
 
 if __name__ == "__main__":
     main()
