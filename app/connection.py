@@ -107,6 +107,7 @@ class Commands(Thread, RDB_fileconfig, Streams):
                     signal = self.share_data.initial_replication_ID_and_Offset()
                     self.socket.send(f"${len(signal)}\r\n{signal}\r\n".encode())
             case "REPLCONF":
-                # if command[1] == "listening-port":
                 self.socket.send("+OK\r\n".encode())
+            case "PSYNC":
+                self.socket.send("+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n".encode())
         print("Sent message")
