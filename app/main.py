@@ -30,8 +30,8 @@ def main():
     if args.replicaof:
         server = Replication()
         master_host, master_port = args.replicaof.split(" ")
-        server.connect_master(master_host, master_port)
-        
+        server.connect_master(master_host, master_port, args.port)
+
     while True:
         conn, address = server_socket.accept() # wait for client
         print("hello")
