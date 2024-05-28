@@ -17,7 +17,6 @@ class Commands(Thread, RDB_fileconfig, Streams):
         self.start()
 
     def run(self):
-        print("no")
         while True:
             request = self.socket.recv(4096)
             if request:
@@ -107,4 +106,7 @@ class Commands(Thread, RDB_fileconfig, Streams):
                 else:
                     signal = self.share_data.initial_replication_ID_and_Offset()
                     self.socket.send(f"${len(signal)}\r\n{signal}\r\n".encode())
+            case "REPLCONF":
+                # if command[1] == "listening-port":
+                self.socket.send("+OK\r\n".encode())
         print("Sent message")
