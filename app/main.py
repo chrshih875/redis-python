@@ -21,22 +21,26 @@ def file_config(command_line):
 
 def main():
     print("Logs from your program will appear here!")
+    replication = []
     shared_data = SharedData()
     args = file_config(argparse.ArgumentParser())
     print("args", args)
 
     port = int(args.port) if args.port else 6379
     server_socket = socket.create_server(("localhost", port), reuse_port=True)
+    # if args.port:
     if args.replicaof:
         print("replica TRUE")
         server = Replication()
         master_host, master_port = args.replicaof.split(" ")
         server.connect_master(master_host, master_port, args.port)
+        # server.connect_master("localhost", args.port, args.port)
+
 
     while True:
         conn, address = server_socket.accept() # wait for client
         print("hello")
-        Commands(conn, address, args.dir, args.dbfilename, shared_data, args.replicaof)
+        Commands(conn, address, args.dir, args.dbfilename, shared_data, replication, args.replicaof)
 
 
 if __name__ == "__main__":

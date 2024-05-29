@@ -2,9 +2,10 @@ from threading import Thread
 from time import time
 from app.RDB_file_config import RDB_fileconfig
 from app.streams import Streams
+# from app.replication import Replication
 
 class Commands(Thread, RDB_fileconfig, Streams):
-    def __init__(self, socket, address, dir, dbfilename, share_data, replica=None):
+    def __init__(self, socket, address, dir, dbfilename, share_data, replication, replica=None):
         super().__init__()
         self.socket = socket
         self.address = address
@@ -14,20 +15,23 @@ class Commands(Thread, RDB_fileconfig, Streams):
         self.config_get = {}
         self.share_data = share_data
         self.replica = replica
+        self.replication = replication
         self.start()
 
     def run(self):
+        print("socket", self.socket)
+        print("addres", self.address)
         while True:
             request = self.socket.recv(4096)
             if request:
                 command = self.parse_request(request)
                 print("PARSE_REQ", command) 
-                self.parse_command(command)
+                self.parse_command(command, request)
 
     def parse_request(self, request):
         return request.decode().split("\r\n")[2:-1:2]
 
-    def parse_command(self, command):
+    def parse_command(self, command, request):
         check_command = command[0].upper()
         match check_command:
             case "PING":
@@ -35,6 +39,11 @@ class Commands(Thread, RDB_fileconfig, Streams):
             case "ECHO":
                 self.socket.send(f"+{command[1]}\r\n".encode())
             case "SET":
+                # print("SETTT", self.share_data.replication)
+                for rep in self.replication:
+                    print("REP", rep)
+                    print("request", request)
+                    rep.sendall(request)
                 self.store[command[1]] = command[2]
                 if len(command) > 3 and command[3].lower() == "px":
                     additional_time = int(command[-1])
@@ -109,9 +118,10 @@ class Commands(Thread, RDB_fileconfig, Streams):
             case "REPLCONF":
                 self.socket.send("+OK\r\n".encode())
             case "PSYNC":
+                print("PYSNC", request)
+                self.replication.append(self.socket)
                 self.socket.send("+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n".encode())
-                rdb_hex = '524544495330303131fa0972656469732d76657205372e322e30fa0a72656469732d62697473c040fa056374696d65c26d08bc65fa08757365642d6d656dc2b0c41000fa08616f662d62617365c000fff06e3bfec0ff5aa2'
-                rdb_content = bytes.fromhex(rdb_hex)
-                rdb_length = f"${len(rdb_content)}\r\n".encode()
-                self.socket.send(rdb_length+rdb_content)
+                signal = self.share_data.empty_RDB()
+                self.socket.send(signal)
+                # self.share_data.replication.append()
         print("Sent message")
