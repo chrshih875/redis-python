@@ -2,7 +2,6 @@ from threading import Thread
 from time import time
 from app.RDB_file_config import RDB_fileconfig
 from app.streams import Streams
-# from app.replication import Replication
 
 class Commands(Thread, RDB_fileconfig, Streams):
     def __init__(self, socket, address, dir, dbfilename, share_data, replication, replica=None):
@@ -39,7 +38,6 @@ class Commands(Thread, RDB_fileconfig, Streams):
             case "ECHO":
                 self.socket.send(f"+{command[1]}\r\n".encode())
             case "SET":
-                # print("SETTT", self.share_data.replication)
                 for rep in self.replication:
                     print("REP", rep)
                     print("request", request)
@@ -110,8 +108,6 @@ class Commands(Thread, RDB_fileconfig, Streams):
             case "INFO":
                 if self.replica:
                     self.socket.send("$10\r\nrole:slave\r\n".encode())
-                elif self.replica:
-                    self.socket.send("$11\r\nrole:master\r\n".encode())
                 else:
                     signal = self.share_data.initial_replication_ID_and_Offset()
                     self.socket.send(f"${len(signal)}\r\n{signal}\r\n".encode())
@@ -123,5 +119,4 @@ class Commands(Thread, RDB_fileconfig, Streams):
                 self.socket.send("+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n".encode())
                 signal = self.share_data.empty_RDB()
                 self.socket.send(signal)
-                # self.share_data.replication.append()
         print("Sent message")

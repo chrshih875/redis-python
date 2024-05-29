@@ -28,13 +28,11 @@ def main():
 
     port = int(args.port) if args.port else 6379
     server_socket = socket.create_server(("localhost", port), reuse_port=True)
-    # if args.port:
     if args.replicaof:
         print("replica TRUE")
         server = Replication()
         master_host, master_port = args.replicaof.split(" ")
         server.connect_master(master_host, master_port, args.port)
-        # server.connect_master("localhost", args.port, args.port)
 
 
     while True:
