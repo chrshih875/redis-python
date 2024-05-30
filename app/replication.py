@@ -3,7 +3,7 @@ import time
 import threading
 # from app.connection import Commands
 class Replication:
-    def __init__(self, master_repl_id='8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb', offset='0'):
+    def __init__(self, master_repl_id='8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb', offset=0):
         super().__init__()
         self.master_repl_id = master_repl_id
         self.offset = offset
@@ -25,28 +25,8 @@ class Replication:
             conn.recv(1024)
             conn.send("*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n".encode())
             conn.recv(1024)
-            conn.recv(1024)
-            # while sig := conn.recv(1024):
-            #     print("sigggggggg", sig)
-            #     parsed = self.parse_request(sig)    
-            #     print("PARRRRRRRRRR", parsed)                
-            # for co in range(3):
-            # conn.recv(1024)
-                
-            # data = conn.recv(1024)
-            # print("DATTTA", data)
-            # request = conn.recv(1024)
-            # print("req", request)
-            # if request:
-            #     hello = self.parse_request(request)
-            #     print("HELLLLLLLLLLO", hello)
-            #     if hello[0][0] == "SET":
-            #         print("SETTT")
-            #         self.set[hello[0][2]] = hello[0][-1]
-            #     else:
-            #         print("ELSEEE")
-            #         conn.send("*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n".encode())
-            print("DID NTO REQUESt")
+            data = conn.recv(1024)
+            print("outsideee", data)
             master_thread = threading.Thread(
             target=self.recieve_command,
             args=(conn,),
@@ -60,11 +40,20 @@ class Replication:
         while True:
             request = conn.recv(1024)
             if request:
+                print("request lentyhgggg", len(request))
                 command = self.parse_request(request)
                 print("command", command)
-                self.parse_command(command, request, conn)
+                if command[-1][0] == "REPLCONF" and len(command) > 1:
+                    self.offset+=len(request) - 37
+                    self.parse_command(command, request, conn)
+                else:
+                    self.parse_command(command, request, conn)
+                    self.offset+=len(request)
+                
+                print("AFTER EVERYTHIG", self.offset)
 
     def parse_request(self, data):
+        add = False
         array = []
         current_data = data.decode().split("\r\n")[2:-1:1]
         print("current_dayta", current_data)
@@ -72,16 +61,28 @@ class Replication:
             if current_data[i] == "SET":
                 array.append(current_data[i:i+5])
             if current_data[i] == "REPLCONF":
+                # self.offset-=37
                 array.append(current_data[i:i+5])
+            if current_data[i] == "PING":
+                array.append([current_data[i]])
         return array
     
     def parse_command(self, command, request, master_conn):
+        print("CAPPP")
         for val in command:
             if val[0] == "SET":
                 self.set[val[2]] = val[-1]
+                # self.offset+=len(request)
             if val[0] == "REPLCONF":
-                master_conn.send("*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n".encode())
-            master_conn.send("+OK\r\n".encode())
+                print("CURR REUTRN OFFSET", self.offset)
+                # self.offset+=37
+                new = f"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n${len(str(self.offset))}\r\n{self.offset}\r\n".encode()
+                master_conn.send(new)
+                # self.offset+=37
+            # if val[0] == "PING":
+                # self.offset+=len(request)
+        print("self.set", self.set)
+
         
     def empty_RDB(self):
         rdb_hex = '524544495330303131fa0972656469732d76657205372e322e30fa0a72656469732d62697473c040fa056374696d65c26d08bc65fa08757365642d6d656dc2b0c41000fa08616f662d62617365c000fff06e3bfec0ff5aa2'
