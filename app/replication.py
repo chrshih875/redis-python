@@ -1,25 +1,63 @@
 import socket
-
-
+import time
+import threading
+# from app.connection import Commands
 class Replication:
     def __init__(self, master_repl_id='8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb', offset='0'):
+        super().__init__()
         self.master_repl_id = master_repl_id
         self.offset = offset
+        self.set = {}
+        # self.command = Commands(None, None, None, None, None, None, None)
 
     def initial_replication_ID_and_Offset(self):
         return f"role:master\nmaster_replid:{self.master_repl_id}\nmaster_repl_offset:{self.offset}"
     
-    def connect_master(self, host, port, slave_port):
-        with socket.create_connection((host, port)) as s:
-            s.send("*1\r\n$4\r\nPING\r\n".encode())
-            s.recv(1024)
-            s.send(f"*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n{slave_port}\r\n".encode())
-            s.recv(1024)
-            s.send("*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n".encode())
-            s.recv(1024)
-            s.send("*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n".encode())
-            s.recv(1024)
+    def connect_master(self, conn, slave_port):
+        # with socket.create_connection((host, port)) as s:
+        try:
+            conn.send("*1\r\n$4\r\nPING\r\n".encode())
+            conn.recv(1024)
+            conn.send(f"*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n{slave_port}\r\n".encode())
+            conn.recv(1024)
+            conn.send("*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n".encode())
+            conn.recv(1024)
+            conn.send("*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n".encode())
+            conn.recv(1024)
+            data = conn.recv(1024)
+            master_thread = threading.Thread(
+            target=self.recieve_command,
+            args=(conn,),
+            daemon=True,
+        ).start()
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+    def recieve_command(self, conn):
+        while True:
+            request = conn.recv(1024)
+            if request:
+                command = self.parse_request(request)
+                self.parse_command(command, request, conn)
+
+    def parse_request(self, data):
+        array = []
+        current_data = data.decode().split("\r\n")[2:-1:1]
+        for i in range(len(current_data)):
+            if current_data[i] == "SET":
+                array.append(current_data[i:i+5])
+        return array
     
+    def parse_command(self, command, request, master_conn):
+        for val in command:
+            # check_command = val[0].upper()
+            # match check_command:
+            #     case "SET":
+            #             print("SETTTT")
+            self.set[val[2]] = val[-1]
+            master_conn.send("+OK\r\n".encode())
+                        # master_conn.send(f"$3\r\n123\r\n".encode())
+        
     def empty_RDB(self):
         rdb_hex = '524544495330303131fa0972656469732d76657205372e322e30fa0a72656469732d62697473c040fa056374696d65c26d08bc65fa08757365642d6d656dc2b0c41000fa08616f662d62617365c000fff06e3bfec0ff5aa2'
         rdb_content = bytes.fromhex(rdb_hex)

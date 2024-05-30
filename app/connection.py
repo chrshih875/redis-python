@@ -2,9 +2,9 @@ from threading import Thread
 from time import time
 from app.RDB_file_config import RDB_fileconfig
 from app.streams import Streams
-
-class Commands(Thread, RDB_fileconfig, Streams):
-    def __init__(self, socket, address, dir, dbfilename, share_data, replication, replica=None):
+from app.replication import Replication
+class Commands(Thread, RDB_fileconfig, Streams, Replication):
+    def __init__(self, socket=None, address=None, dir=None, dbfilename=None, share_data=None, replication=None, replica=None, repClass=None, role="MASTER"):
         super().__init__()
         self.socket = socket
         self.address = address
@@ -15,11 +15,12 @@ class Commands(Thread, RDB_fileconfig, Streams):
         self.share_data = share_data
         self.replica = replica
         self.replication = replication
+        self.role = role
+        if repClass:
+            self.repset = repClass.set
         self.start()
 
     def run(self):
-        print("socket", self.socket)
-        print("addres", self.address)
         while True:
             request = self.socket.recv(4096)
             if request:
@@ -39,8 +40,6 @@ class Commands(Thread, RDB_fileconfig, Streams):
                 self.socket.send(f"+{command[1]}\r\n".encode())
             case "SET":
                 for rep in self.replication:
-                    print("REP", rep)
-                    print("request", request)
                     rep.sendall(request)
                 self.store[command[1]] = command[2]
                 if len(command) > 3 and command[3].lower() == "px":
@@ -48,11 +47,18 @@ class Commands(Thread, RDB_fileconfig, Streams):
                     self.expiry_time[command[1]] = additional_time+(time()*1000)
                 self.socket.send("+OK\r\n".encode())
             case "GET":
-                if self.path.dir and self.path.filename:
+                if self.role == 'SLAVE':
+                    value = self.repset[command[1]]
+                    self.socket.send(f"${len(value)}\r\n{value}\r\n".encode())
+                elif self.path.dir and self.path.filename:
                     signal = self.read_rdb_file(self.path.dir, self.path.filename, "GET")
                     self.socket.send(signal[command[1]])
+                    for rep in self.replication:
+                        rep.sendall(request)
                 elif command[1] in self.expiry_time and self.expiry_time[command[1]] >= time() * 1000 or command[1] not in self.expiry_time:
                     self.socket.send(f"+{self.store[command[1]]}\r\n".encode())
+                    for rep in self.replication:
+                        rep.sendall(request)
                 else:
                     self.socket.send("$-1\r\n".encode())
             case "CONFIG" | "GET":
