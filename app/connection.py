@@ -125,4 +125,7 @@ class Commands(Thread, RDB_fileconfig, Streams, Replication):
                 self.socket.send("+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n".encode())
                 signal = self.share_data.empty_RDB()
                 self.socket.send(signal)
+            case "WAIT":
+                self.socket.send(b":0\r\n")
+                pass
         print("Sent message")

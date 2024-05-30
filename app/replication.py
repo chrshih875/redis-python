@@ -53,7 +53,6 @@ class Replication:
                 print("AFTER EVERYTHIG", self.offset)
 
     def parse_request(self, data):
-        add = False
         array = []
         current_data = data.decode().split("\r\n")[2:-1:1]
         print("current_dayta", current_data)
@@ -61,26 +60,18 @@ class Replication:
             if current_data[i] == "SET":
                 array.append(current_data[i:i+5])
             if current_data[i] == "REPLCONF":
-                # self.offset-=37
                 array.append(current_data[i:i+5])
             if current_data[i] == "PING":
                 array.append([current_data[i]])
         return array
     
     def parse_command(self, command, request, master_conn):
-        print("CAPPP")
         for val in command:
             if val[0] == "SET":
                 self.set[val[2]] = val[-1]
-                # self.offset+=len(request)
             if val[0] == "REPLCONF":
-                print("CURR REUTRN OFFSET", self.offset)
-                # self.offset+=37
                 new = f"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n${len(str(self.offset))}\r\n{self.offset}\r\n".encode()
                 master_conn.send(new)
-                # self.offset+=37
-            # if val[0] == "PING":
-                # self.offset+=len(request)
         print("self.set", self.set)
 
         
