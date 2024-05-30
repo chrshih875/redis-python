@@ -126,6 +126,7 @@ class Commands(Thread, RDB_fileconfig, Streams, Replication):
                 signal = self.share_data.empty_RDB()
                 self.socket.send(signal)
             case "WAIT":
-                self.socket.send(b":0\r\n")
+                response = ":" + str(len(self.replication)) + "\r\n"
+                self.socket.send(response.encode())
                 pass
         print("Sent message")
