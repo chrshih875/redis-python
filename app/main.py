@@ -31,12 +31,10 @@ def main():
     global role
     shared_data = SharedData(role)
     args = file_config(argparse.ArgumentParser())
-    print("args", args)
     server = None
     port = int(args.port) if args.port else 6379
     server_socket = socket.create_server(("localhost", port), reuse_port=True)
     if args.replicaof:
-        print("DID TJO SMPT ACTIVATE")
         role = 'SLAVE'
         server = Replication(role)
         master_host, master_port = args.replicaof.split(" ")

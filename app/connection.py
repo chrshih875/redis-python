@@ -27,7 +27,6 @@ class Commands(Thread, RDB_fileconfig, Streams, Replication):
             request = self.socket.recv(4096)
             if request:
                 command = self.parse_request(request)
-                print("PARSE_REQ", command) 
                 self.parse_command(command, request)
 
     def parse_request(self, request):
@@ -46,12 +45,10 @@ class Commands(Thread, RDB_fileconfig, Streams, Replication):
                         rep.sendall(request)
                         self.share_data.replication[rep] = 1
                 self.store[command[1]] = command[2]
-                print("SELF.store", self.store)
                 if len(command) > 3 and command[3].lower() == "px":
                     additional_time = int(command[-1])
                     self.expiry_time[command[1]] = additional_time+(time.time()*1000)
                 self.socket.send("+OK\r\n".encode())
-                print("self.replicatin after set", self.share_data.replication)
             case "GET":
                 if self.role == 'SLAVE':
                     value = self.repset[command[1]]
@@ -124,54 +121,37 @@ class Commands(Thread, RDB_fileconfig, Streams, Replication):
                     signal = self.share_data.initial_replication_ID_and_Offset()
                     self.socket.send(f"${len(signal)}\r\n{signal}\r\n".encode())
             case "REPLCONF":
-                print("HMMMMMMMMMMMM")
                 self.handle_replconf(command[1])
                 # self.socket.send("+OK\r\n".encode())
             case "PSYNC":
-                print("PYSNC", request)
-                print("HH")
                 self.share_data.replication[self.socket] = 0
                 self.socket.send("+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n".encode())
                 signal = self.share_data.empty_RDB()
                 self.socket.send(signal)
-                print("total replicas", self.share_data.replication, len(self.share_data.replication))
             case "WAIT":
-           
-                # else:
                 self.handle_wait(command[1], command[2])
         print("Sent message")
 
 
     def handle_wait(self, count, timer):
-        print("handle wait")
         for repl, value in self.share_data.replication.items():
             if value == 1:
-                print("does this enter")
                 repl.send("*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n".encode("utf-8"))
         
         start = time.time()+0.05
-        print("self.share_data.replied_act", self.share_data.replied_ack)
         while self.share_data.replied_ack < int(count) and (time.time() - int(start)) < int(timer) / 1000:
-            print("timer hittt")
             time.sleep(0.01)
-        print("replied_ack", self.share_data.replied_ack)
         not_acked = len([ repl for repl, val in self.share_data.replication.items() if val == 0])
-        print("NOTTTTT", not_acked)
         if not_acked == len(self.share_data.replication):
-            print("0000000000000000000")
             response = f":{str(len(self.share_data.replication))}\r\n".encode("utf-8")
         #     self.socket.send(response.encode())
         else:
-            print("DPES THI SEVEN HIT")
             response = f":{self.share_data.replied_ack}\r\n".encode("utf-8")
             self.share_data.replied_ack = 0
         self.socket.send(response)
 
     def handle_replconf(self, command):
-        # if self.role == "MASTER":
-        print("MASTER?")
         if command == 'ACK':
-            print("ADD MASTER")
             self.share_data.replied_ack+=1
         else:
             self.socket.send("+OK\r\n".encode())
