@@ -3,14 +3,18 @@ import argparse
 from app.connection import Commands
 from collections import defaultdict
 from threading import Condition
-import threading
 from app.replication import Replication
+
+role = "MASTER"
 class SharedData(Replication):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, role):
+        super().__init__(role)
         self.stream_log = defaultdict(list)
         self.block_reads = []
         self.condition = Condition()
+        self.replication = {}
+        self.replied_ack = 0
+
 
 def file_config(command_line):
     command_line.add_argument('--dir', required=False, help='Directory for Redis files')
@@ -24,16 +28,17 @@ def file_config(command_line):
 def main():
     print("Logs from your program will appear here!")
     replication = []
-    shared_data = SharedData()
+    global role
+    shared_data = SharedData(role)
     args = file_config(argparse.ArgumentParser())
-    role = 'MASTER'
     print("args", args)
     server = None
     port = int(args.port) if args.port else 6379
     server_socket = socket.create_server(("localhost", port), reuse_port=True)
     if args.replicaof:
+        print("DID TJO SMPT ACTIVATE")
         role = 'SLAVE'
-        server = Replication()
+        server = Replication(role)
         master_host, master_port = args.replicaof.split(" ")
         master_conn = socket.socket()
         master_conn.connect((master_host, int(master_port)))
